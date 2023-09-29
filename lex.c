@@ -57,7 +57,38 @@ int isIden(char *lexeme)
 }
 int *createTokenArr(char **lexems)
 {
-    return NULL;
+    if (progLen == 0)
+        return NULL;
+    int *tokenArr = malloc(sizeof(int) * progLen);
+    for (int i = 0; i < progLen; i++)
+    {
+        char *lex = lexems[i];
+        if (isROrS(lex) > 0)
+        {
+            tokenArr[i] = isROrS(lex);
+            continue;
+        }
+        else if (isIden(lex))
+        {
+            if (strlen(lex) <= 11)
+                tokenArr[i] = 2;
+            else
+                tokenArr[i] = -1;
+            continue;
+        }
+        else if (isNum(lex))
+        {
+            if (strlen(lex) <= 5)
+                tokenArr[i] = 3;
+            else
+                tokenArr[i] = -2;
+            continue;
+        }
+        else
+            tokenArr[i] = -3;
+    }
+
+    return tokenArr;
 }
 void readELF(char *filename, char **lexems)
 {
@@ -210,6 +241,17 @@ void printLex(char **lexems)
                lex, isROrS(lex), isIden(lex) ? "Yes" : "No", isNum(lex) ? "Yes" : "No");
     }
 }
+void printTokens(int *tokenArr, char **lexems)
+{
+    printf("Token List:\n");
+    for (int i = 0; i < progLen; i++)
+    {
+        printf("%d ", tokenArr[i]);
+        if (tokenArr[i] == 2 || tokenArr[i] == 3)
+            printf("%s ", lexems[i]);
+    }
+    printf("\n");
+}
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -222,7 +264,8 @@ int main(int argc, char **argv)
 
     strcpy(filename, argv[1]);
     readELF(filename, lexems);
-    printLex(lexems);
-    // printf("isReserved: %d\n", isReservedOrSpecial("var"));
+    // printLex(lexems);
+    int *tokenArr = createTokenArr(lexems);
+    printTokens(tokenArr, lexems);
     return 0;
 }

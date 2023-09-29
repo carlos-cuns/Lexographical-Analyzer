@@ -6,10 +6,59 @@
 
 #define MAX_SIZE 100
 #define PROG_SIZE 1000
-#define MAX_LEX 11
+#define MAX_LEX 100
 
-int len = 0;
+char *reserved[] = {
+    NULL, "skip", NULL, NULL, "+", "-", "*", "/", "ifel", "=", "!=", "<", "<=", ">", ">=", "(",
+    ")", ",", ";", ".", ":=", "begin", "end", "if", "then", "while", "do", "call", "const",
+    "var", "procedure", "write", "read", "else"};
 
+int progLen = 0;
+
+int isNum(char *lexeme)
+{
+    if (lexeme == NULL)
+        return 0;
+    int len = strlen(lexeme);
+    for (int i = 0; i < len; i++)
+    {
+        if (!isdigit(lexeme[i]))
+            return 0;
+    }
+    return 1;
+}
+// returns index of reserved word or -1 if is not
+int isROrS(char *lexeme)
+{
+    if (lexeme == NULL)
+        return -1;
+    for (int i = 1; i <= 33; i++)
+    {
+        if (reserved[i] == NULL)
+            continue;
+        if (strcmp(lexeme, reserved[i]) == 0)
+            return i;
+    }
+    return -1;
+}
+int isIden(char *lexeme)
+{
+    if (lexeme == NULL)
+        return 0;
+    int len = strlen(lexeme);
+    if (len == 0 || !isalpha(lexeme[0]))
+        return 0;
+    for (int i = 1; i < len; i++)
+    {
+        if (!(isalpha(lexeme[i]) || isdigit(lexeme[i])))
+            return 0;
+    }
+    return 1;
+}
+int *createTokenArr(char **lexems)
+{
+    return NULL;
+}
 void readELF(char *filename, char **lexems)
 {
     char buffer;
@@ -21,7 +70,7 @@ void readELF(char *filename, char **lexems)
     FILE *file = fopen(filename, "r");
     if (!file)
     {
-        printf("failed to open file");
+        printf("failed to open file\n");
         exit(1);
     }
 
@@ -149,14 +198,16 @@ void readELF(char *filename, char **lexems)
         }
 
     } while (1);
-    len = i;
+    progLen = i;
     fclose(file);
 }
 void printLex(char **lexems)
 {
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < progLen; i++)
     {
-        printf("%s\n", lexems[i]);
+        char *lex = lexems[i];
+        printf("%-11s , isRorS %-2d, isIden %-3s, isNum %-3s\n",
+               lex, isROrS(lex), isIden(lex) ? "Yes" : "No", isNum(lex) ? "Yes" : "No");
     }
 }
 int main(int argc, char **argv)
@@ -171,7 +222,7 @@ int main(int argc, char **argv)
 
     strcpy(filename, argv[1]);
     readELF(filename, lexems);
-
     printLex(lexems);
+    // printf("isReserved: %d\n", isReservedOrSpecial("var"));
     return 0;
 }

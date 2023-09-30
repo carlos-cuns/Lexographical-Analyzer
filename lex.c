@@ -111,7 +111,11 @@ int *createTokenArr(char **lexems)
 
 void insertLex(char **lexems, char *workingStr, int length, int index)
 {
+    if (workingStr == NULL)
+        return;
     workingStr[length - 1] = '\0';
+    if (strcmp(workingStr, "") == 0)
+        return;
     lexems[index] = malloc(sizeof(char) * (length));
     strcpy(lexems[index], workingStr);
 
@@ -144,11 +148,15 @@ void readELF(char *filename, char **lexems)
         // only read char if it isn't end of file, otherwise insert current lexeme
         if (feof(file))
         {
-            insertLex(lexems, workingStr, j + 1, i);
+            if (j > 0)
+            {
+                insertLex(lexems, workingStr, j + 1, i);
+                j = 0;
+            }
             break;
         }
         // skip over blank characters and new lines
-        if (isblank(buffer) || buffer == '\n')
+        if (buffer == ' ' || buffer == '\t' || buffer == '\n')
         {
             if (j > 0)
             {
@@ -160,22 +168,39 @@ void readELF(char *filename, char **lexems)
         switch (buffer)
         {
         // common symbol logic, check for symbol and take current word and symbol as 2 lexemes
+        case ';':
+        case '.':
+        case ',':
+            if (j > 0)
+            {
+                insertLex(lexems, workingStr, j + 1, i++);
+                j = 0;
+            }
+            workingStr[0] = buffer;
+            insertLex(lexems, workingStr, 2, i++);
+            j = 0;
+            break;
         case '(':
         case ')':
         case '=':
         case '+':
         case '-':
-        case ';':
-        case '.':
-        case ',':
         case '*':
-            insertLex(lexems, workingStr, j + 1, i++);
+            if (j > 0)
+            {
+                insertLex(lexems, workingStr, j + 1, i++);
+                j = 0;
+            }
             workingStr[0] = buffer;
             insertLex(lexems, workingStr, 2, i++);
             j = 0;
             break;
         case ':':
-            insertLex(lexems, workingStr, j + 1, i++);
+            if (j > 0)
+            {
+                insertLex(lexems, workingStr, j + 1, i++);
+                j = 0;
+            }
             workingStr[0] = buffer;
             workingStr[1] = fgetc(file);
             insertLex(lexems, workingStr, 3, i++);
@@ -185,22 +210,25 @@ void readELF(char *filename, char **lexems)
         case '>':
         case '<':
         case '!':
-            insertLex(lexems, workingStr, j + 1, i++);
+            if (j > 0)
+            {
+                insertLex(lexems, workingStr, j + 1, i++);
+                j = 0;
+            }
             char temp = buffer;
             buffer = fgetc(file);
             if (buffer == '=')
             {
                 workingStr[0] = temp;
                 workingStr[1] = buffer;
-                insertLex(lexems, workingStr, 3, i);
+                insertLex(lexems, workingStr, 3, i++);
             }
             else
             {
                 workingStr[0] = temp;
-                insertLex(lexems, workingStr, 2, i);
+                insertLex(lexems, workingStr, 2, i++);
                 checked = 1;
             }
-            i++;
             j = 0;
             break;
         // check to see if this is a division or a comment
@@ -220,7 +248,11 @@ void readELF(char *filename, char **lexems)
             else
             {
                 checked = 1;
-                insertLex(lexems, workingStr, j + 1, i++);
+                if (j > 0)
+                {
+                    insertLex(lexems, workingStr, j + 1, i++);
+                    j = 0;
+                }
                 workingStr[0] = temp;
                 insertLex(lexems, workingStr, 2, i++);
                 j = 0;
@@ -236,6 +268,7 @@ void readELF(char *filename, char **lexems)
     } while (1);
 
     progLen = i;
+
     fclose(file);
 
     return;
@@ -246,7 +279,7 @@ void printLex(char **lexems)
     for (int i = 0; i < progLen; i++)
     {
         char *lex = lexems[i];
-        printf("%-11s , isRorS %-2d, isIden %-3s, isNum %-3s\n",
+        printf("\"%s\" , isRorS %-2d, isIden %-3s, isNum %-3s\n",
                lex, isROrS(lex), isIden(lex) ? "Yes" : "No", isNum(lex) ? "Yes" : "No");
     }
 
@@ -259,7 +292,8 @@ void printTokens(int *tokenArr, char **lexems)
     printf("Token List:\n");
     for (int i = 0; i < progLen; i++)
     {
-        printf("%d ", tokenArr[i]);
+        if (tokenArr[i] >= 0)
+            printf("%d ", tokenArr[i]);
         if (tokenArr[i] == 2 || tokenArr[i] == 3) // print out identifiers and numbers
             printf("%s ", lexems[i]);
     }
@@ -270,13 +304,14 @@ void printTokens(int *tokenArr, char **lexems)
 
 void printTable(int *tokenArr, char **lexems)
 {
+    printf("Proglen at table: %d\n", progLen);
     printf("Lexeme Table:\n\n");
-    printf("%-11s%s\n", "lexeme", "token type");
+    printf("%-15s%-15s\n", "lexeme", "token type");
     for (int i = 0; i < progLen; i++)
     {
-        printf("%-11s", lexems[i]);
+        printf("%-15s", lexems[i]);
         if (tokenArr[i] > 0) // print out identifiers and numbers
-            printf("%d ", tokenArr[i]);
+            printf("%-15d", tokenArr[i]);
         else
         {
             switch (tokenArr[i]) // print error codes
